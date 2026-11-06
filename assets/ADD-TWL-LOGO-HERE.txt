@@ -1,0 +1,1 @@
+Place the official Timber World logo in this folder and name it twl-logo.png. The page references assets/twl-logo.png.
