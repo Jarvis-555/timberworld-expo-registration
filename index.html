@@ -176,71 +176,87 @@
   </main>
 
   <script>
-    const form = document.getElementById('expoForm');
-    const button = document.getElementById('submitButton');
-    const loading = document.getElementById('loading');
-    const errorBox = document.getElementById('errorMessage');
+    
+const GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbyAuLEO50YY-8owYp8Es1XeACJMpJUvceCxVw9p6Xh_m1gm7axmPYevDdB9-GHyhQTH/exec";
 
-    function showError(message) {
-      errorBox.textContent = message;
-      errorBox.style.display = 'block';
-      loading.style.display = 'none';
-      button.disabled = false;
-      button.textContent = 'SUBMIT & CONTINUE';
-    }
+const form = document.getElementById('expoForm');
+const button = document.getElementById('submitButton');
+const loading = document.getElementById('loading');
+const errorBox = document.getElementById('errorMessage');
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      errorBox.style.display = 'none';
+function showError(message) {
+  errorBox.textContent = message;
+  errorBox.style.display = 'block';
+  loading.style.display = 'none';
+  button.disabled = false;
+  button.textContent = 'SUBMIT & CONTINUE';
+}
 
-      if (!form.reportValidity()) return;
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
 
-      const payload = {
-        name: document.getElementById('name').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        company: document.getElementById('company').value.trim(),
-        interest: document.getElementById('interest').value,
-        source: 'EXISTING LINKTREE QR',
-        campaign: 'TIMBER WORLD LIMITED EXPO',
-        landingPage: window.location.href,
-        website: document.getElementById('website').value
-      };
+  errorBox.style.display = 'none';
 
-      if (!payload.name || !payload.email) {
-        showError('Please enter your name and a valid email address.');
-        return;
-      }
+  if (!form.reportValidity()) return;
 
-      button.disabled = true;
-      button.textContent = 'SUBMITTING...';
-      loading.style.display = 'block';
+  const payload = {
+    name: document.getElementById('name').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    company: document.getElementById('company').value.trim(),
+    interest: document.getElementById('interest').value,
+    source: 'EXISTING LINKTREE QR',
+    campaign: 'TIMBER WORLD LIMITED EXPO',
+    landingPage: window.location.href,
+    website: document.getElementById('website').value
+  };
 
-      try {
-        const response = await fetch('submit.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          cache: 'no-store'
-        });
+  if (!payload.name || !payload.email) {
+    showError('Please enter your name and a valid email address.');
+    return;
+  }
 
-        const result = await response.json();
+  if (!GOOGLE_SCRIPT_URL.includes('/exec')) {
+    showError('Google Apps Script URL has not been configured.');
+    return;
+  }
 
-        if (!response.ok || !result.success) {
-          throw new Error(result.message || 'Your registration could not be saved. Please try again.');
-        }
+  button.disabled = true;
+  button.textContent = 'SUBMITTING...';
+  loading.style.display = 'block';
 
-        document.getElementById('formSection').style.display = 'none';
-        loading.style.display = 'none';
-        document.getElementById('visitorName').textContent = ', ' + payload.name;
-        document.getElementById('successSection').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      } catch (error) {
-        console.error(error);
-        showError(error.message || 'Connection problem. Please check your internet and try again.');
-      }
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: new URLSearchParams(payload)
     });
+
+    // no-cors returns an opaque response.
+    // We cannot inspect Google's success/error JSON here.
+    document.getElementById('formSection').style.display = 'none';
+
+    loading.style.display = 'none';
+
+    document.getElementById('visitorName').textContent =
+      ', ' + payload.name;
+
+    document.getElementById('successSection').style.display = 'block';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (error) {
+    console.error('Submission error:', error);
+
+    showError(
+      'Connection problem. Please check your internet and try again.'
+    );
+  }
+});
   </script>
 </body>
 </html>
