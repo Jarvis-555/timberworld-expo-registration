@@ -360,64 +360,69 @@ TIMBER WORLD LIMITED · EXPO VISITOR REGISTRATION
 </main>
 
 <script>
-(function() {
-
+(function () {
   const form = document.getElementById('expoForm');
   const button = document.getElementById('submitButton');
   const loading = document.getElementById('loading');
   const errorBox = document.getElementById('errorMessage');
-  const frame = document.getElementById('submissionFrame');
 
   let submitting = false;
+  let currentRequestId = null;
   let timeoutId = null;
 
   function showError(message) {
     clearTimeout(timeoutId);
     submitting = false;
+    currentRequestId = null;
+
     errorBox.textContent = message;
     errorBox.style.display = 'block';
     loading.style.display = 'none';
+
     button.disabled = false;
     button.textContent = 'SUBMIT & CONTINUE';
   }
 
-  window.addEventListener('message', function(event) {
-
-    if (event.source !== frame.contentWindow) return;
-
-    const result = event.data;
-
-    if (!result || result.type !== 'TWL_EXPO_RESULT') return;
-    if (!submitting) return;
-
+  function showSuccess() {
     clearTimeout(timeoutId);
     submitting = false;
+    currentRequestId = null;
+
+    document.getElementById('formSection').style.display = 'none';
+
+    document.getElementById('visitorName').textContent =
+      ', ' + document.getElementById('name').value.trim();
+
+    document.getElementById('successSection').style.display = 'block';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Continue to Timber World's Linktree after confirmation.
+    setTimeout(function () {
+      window.location.href = 'https://linktr.ee/timberworld';
+    }, 2500);
+  }
+
+  window.addEventListener('message', function (event) {
+    const result = event.data;
+
+    // Match the response to this exact submission.
+    // Do not rely on iframe identity: Apps Script may wrap its response.
+    if (!result || result.type !== 'TWL_EXPO_RESULT') return;
+    if (!submitting || !currentRequestId) return;
+    if (result.requestId !== currentRequestId) return;
 
     if (result.success === true) {
-
-      document.getElementById('formSection').style.display = 'none';
-
-      document.getElementById('visitorName').textContent =
-        ', ' + document.getElementById('name').value.trim();
-
-      document.getElementById('successSection').style.display = 'block';
-
-      window.scrollTo({top:0, behavior:'smooth'});
-
+      showSuccess();
     } else {
-
-      showError(result.message || 'Registration could not be saved. Please try again.');
-
+      showError(result.message || 'Registration could not be completed.');
     }
-
   });
 
-  form.addEventListener('submit', function(event) {
-
+  form.addEventListener('submit', function (event) {
     event.preventDefault();
 
     if (submitting) return;
-
     if (!form.reportValidity()) return;
 
     if (document.getElementById('website').value.trim() !== '') {
@@ -426,26 +431,33 @@ TIMBER WORLD LIMITED · EXPO VISITOR REGISTRATION
     }
 
     errorBox.style.display = 'none';
+
+    currentRequestId = (
+      window.crypto && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now() + '-' + Math.random().toString(36).substring(2)
+    );
+
+    document.getElementById('requestId').value = currentRequestId;
+
+    submitting = true;
     button.disabled = true;
     button.textContent = 'SUBMITTING...';
     loading.style.display = 'block';
 
-    submitting = true;
-
-    timeoutId = setTimeout(function() {
-      showError('The server is taking too long to respond. Check your connection and try again. Contact the event team if you have already submitted.');
-    }, 25000);
+    timeoutId = setTimeout(function () {
+      showError(
+        'We have not received confirmation. Your registration may already be saved. Please check with the event team before submitting again.'
+      );
+    }, 45000);
 
     try {
       form.submit();
     } catch (error) {
       showError('Unable to send registration. Please try again.');
     }
-
   });
-
 })();
 </script>
-
 </body>
 </html>
